@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flow Sync - Process Planning Software</title>
+  <!-- Tailwind CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+  <!-- WebGazer for Eye Gaze Tracking (Bonus) -->
+  <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #6366f1;
+      --secondary: #10b981;
+      --dark: #1f2937;
+      --light: #f9fafb;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6;
+    }
+    /* Login Page Styles */
+    #loginPage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #1f2937;
+    }
+    .login-container {
+      background: white;
+      padding: 2rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    /* Main App */
+    #mainApp { display: none; }
+    .sidebar {
+      background-color: var(--dark);
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .sidebar-link {
+      border-left: 4px solid transparent;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .sidebar-link:hover, .sidebar-link.active {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-left: 4px solid var(--primary);
+    }
+    .card {
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1),
+                  0 2px 4px -1px rgba(0,0,0,0.06);
+      transition: all 0.3s;
+    }
+    .card:hover {
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1),
+                  0 4px 6px -2px rgba(0,0,0,0.05);
+    }
+    .chat-message {
+      border-radius: 1rem;
+      margin-bottom: 0.75rem;
+      max-width: 80%;
+    }
+    .message-received {
+      background-color: #e5e7eb;
+      border-bottom-left-radius: 0;
+    }
+    .message-sent {
+      background-color: var(--primary);
+      color: white;
+      border-bottom-right-radius: 0;
+      margin-left: auto;
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-light);
+    }
+    .notification-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background-color: var(--danger);
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .chat-group {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .chat-group:hover, .chat-group.active {
+      background-color: #f3f4f6;
+    }
+    .message-input {
+      border-radius: 1.5rem;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+    /* Section Display */
+    .section { display: none; }
+    .section.active { display: block; }
+    /* Search Results Dropdown */
+    #searchResults {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      z-index: 100;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #searchResults li {
+      padding: 0.5rem;
+      cursor: pointer;
+    }
+    #searchResults li:hover { background: #f1f1f1; }
+    /* Notifications Panel */
+    #notificationsPanel {
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 0.5rem;
+      width: 300px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 1000;
+      display: none;
+    }
+    #notificationsPanel ul { max-height: 300px; overflow-y: auto; }
+    #notificationsPanel li { padding: 0.75rem; border-bottom: 1px solid #eee; }
+    #notificationsPanel li:last-child { border-bottom: none; }
+    /* Dark Mode */
+    .dark-mode { background-color: #1a202c; color: #e2e8f0; }
+    .dark-mode .card { background-color: #2d3748; color: #e2e8f0; }
+    .dark-mode .message-received { background-color: #4a5568; color: white; }
+    /* Floating AI Assistant Button */
+    #aiAssistantBtn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: var(--primary);
+      color: white;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    /* AI Assistant Modal */
+    #aiModal {
+      display: none;
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: 320px;
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    #aiModal header {
+      background: var(--primary);
+      color: white;
+      padding: 0.75rem;
+      border-top-left-radius: 0.5rem;
+      border-top-right-radius: 0.5rem;
+    }
+    #aiModal .content {
+      padding: 0.75rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #aiModal footer {
+      padding: 0.5rem;
+      border-top: 1px solid #e5e7eb;
+      text-align: right;
+    }
+    /* Voice Command Indicator */
+    #voiceIndicator {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--secondary);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      z-index: 1000;
+      display: none;
+    }
+    /* Settings Dropdown */
+    #settingsDropdown {
+      display: none;
+    }
+    /* Sidebar Eye Tracker Status */
+    #eyeTrackerStatusSidebar {
+      background: var(--info);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      margin: 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Page -->
+  <div id="loginPage">
+    <div class="login-container">
+      <h2 class="text-2xl font-bold mb-4 text-center">Login</h2>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-gray-700">Username</label>
+          <input type="text" id="username" class="border rounded w-full px-3 py-2" placeholder="Enter username" required>
+        </div>
+        <div>
+          <label class="block text-gray-700">Password</label>
+          <input type="password" id="password" class="border rounded w-full px-3 py-2" placeholder="Enter password" required>
+        </div>
+        <button type="submit" class="btn-primary w-full px-3 py-2 rounded">Login</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="mainApp">
+    <!-- Floating AI Assistant Button -->
+    <div id="aiAssistantBtn" title="Open AI Assistant">
+      <i class="fas fa-robot fa-lg"></i>
+    </div>
+    <!-- AI Assistant Modal -->
+    <div id="aiModal">
+      <header>
+        <span>AI Assistant</span>
+        <button id="closeAiModal" class="float-right text-white"><i class="fas fa-times"></i></button>
+      </header>
+      <div class="content" id="aiResponseArea">
+        <p><strong>Reminder:</strong> Don't forget to review your pending tasks.</p>
+        <p><strong>Summary:</strong> Latest chat indicates a need to update the wireframes.</p>
+      </div>
+      <footer>
+        <input type="text" id="aiInput" class="border rounded w-3/4 px-2 py-1" placeholder="Ask me something..." />
+        <button id="aiSendBtn" class="btn-primary text-sm px-3 py-1 rounded">Send</button>
+      </footer>
+    </div>
+    <!-- Voice Command Indicator -->
+    <div id="voiceIndicator">Listening...</div>
+    <!-- Main Layout -->
+    <div class="flex h-screen overflow-hidden">
+      <!-- Sidebar -->
+      <div class="sidebar w-16 md:w-64 flex flex-col text-white">
+        <!-- Top Section: Logo and Eye Tracker Status -->
+        <div>
+          <!-- Logo -->
+          <div class="p-4 flex items-center justify-center md:justify-start">
+            <div class="bg-white text-indigo-600 font-bold text-xl rounded-lg h-10 w-10 flex items-center justify-center">F</div>
+            <span class="ml-3 font-semibold text-2xl hidden md:block">Flow Sync</span>
+          </div>
+          <!-- Eye Tracker Status (moved to sidebar) -->
+          <div id="eyeTrackerStatusSidebar">Eye Tracker: Inactive</div>
+          <!-- Navigation -->
+          <nav class="mt-8 flex-1">
+            <div class="px-2 space-y-1">
+              <div class="sidebar-link active" data-section="dashboard">
+                <i class="fas fa-tachometer-alt"></i>
+                <span class="ml-3 hidden md:inline">Dashboard</span>
+              </div>
+              <div class="sidebar-link" data-section="chat">
+                <i class="fas fa-comments"></i>
+                <span class="ml-3 hidden md:inline">Chat</span>
+                <span class="notification-badge hidden md:flex">3</span>
+              </div>
+              <div class="sidebar-link" data-section="meetings">
+                <i class="fas fa-calendar-alt"></i>
+                <span class="ml-3 hidden md:inline">Meetings</span>
+              </div>
+              <div class="sidebar-link" data-section="reports">
+                <i class="fas fa-chart-line"></i>
+                <span class="ml-3 hidden md:inline">Reports</span>
+              </div>
+              <div class="sidebar-link" data-section="settings">
+                <i class="fas fa-cog"></i>
+                <span class="ml-3 hidden md:inline">Settings</span>
+              </div>
+            </div>
+          </nav>
+        </div>
+        <!-- User Profile -->
+        <div class="p-4 flex items-center">
+          <img src="/api/placeholder/40/40" alt="User Avatar" class="h-10 w-10 rounded-full">
+          <div class="ml-3 hidden md:block">
+            <p id="profileName" class="font-medium text-sm">Alex Johnson</p>
+            <p id="profileRole" class="text-xs text-gray-400">Project Manager</p>
+          </div>
+        </div>
+      </div>
+      <!-- Main Content -->
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm z-10 relative">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+              <div class="flex items-center">
+                <div class="hidden md:block">
+                  <h1 id="sectionTitle" class="text-2xl font-bold text-gray-800">Dashboard</h1>
+                </div>
+                <div class="md:hidden">
+                  <button type="button" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <i class="fas fa-bars"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="flex items-center justify-around space-x-6 relative w-1/2">
+                <!-- Search Bar -->
+                <div class="hidden md:block relative">
+                  <div class="relative">
+                    <input type="text" id="searchInput" placeholder="Search..." class="pl-10 pr-4 py-2 rounded-lg border focus:ring-indigo-500 focus:border-indigo-500">
+                    <div class="absolute left-3 top-2.5 text-gray-400">
+                      <i class="fas fa-search"></i>
+                    </div>
+                  </div>
+                  <ul id="searchResults"></ul>
+                </div>
+                <!-- Notifications -->
+                <div class="relative">
+                  <button type="button" id="notifBtn" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <i class="fas fa-bell text-xl"></i>
+                    <span class="notification-badge">5</span>
+                  </button>
+                </div>
+                <!-- Settings with Logout Dropdown -->
+                <div class="relative" id="settingsDropdownContainer">
+                  <button type="button" id="settingsBtn" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <i class="fas fa-cog text-xl"></i>
+                  </button>
+                  <div id="settingsDropdown" class="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow-lg z-50">
+                    <a href="#" id="logoutBtn" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Logout</a>
+                  </div>
+                </div>
+                <!-- Accessibility Menu -->
+                <div>
+                  <button type="button" id="accessibilityBtn" class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <i class="fas fa-universal-access text-xl"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+        <!-- Section Containers -->
+        <main id="mainContent" class="flex-1 overflow-y-auto bg-gray-100 p-4">
+          <!-- Dashboard Section -->
+          <div id="section-dashboard" class="section active">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <!-- Task Stats Card -->
+              <div class="bg-white rounded-lg shadow p-4 card">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-gray-500 text-sm">Total Tasks</p>
+                    <h2 class="text-3xl font-bold">128</h2>
+                    <p class="text-green-500 text-sm mt-1">
+                      <i class="fas fa-arrow-up mr-1"></i>
+                      <span>12% increase</span>
+                    </p>
+                  </div>
+                  <div class="bg-indigo-100 rounded-full h-12 w-12 flex items-center justify-center">
+                    <i class="fas fa-tasks text-indigo-600 text-xl"></i>
+                  </div>
+                </div>
+              </div>
+              <!-- Completed Tasks Card -->
+              <div class="bg-white rounded-lg shadow p-4 card">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-gray-500 text-sm">Completed Tasks</p>
+                    <h2 class="text-3xl font-bold">87</h2>
+                    <p class="text-green-500 text-sm mt-1">
+                      <i class="fas fa-arrow-up mr-1"></i>
+                      <span>8% increase</span>
+                    </p>
+                  </div>
+                  <div class="bg-green-100 rounded-full h-12 w-12 flex items-center justify-center">
+                    <i class="fas fa-check text-green-600 text-xl"></i>
+                  </div>
+                </div>
+              </div>
+              <!-- Pending Tasks Card -->
+              <div class="bg-white rounded-lg shadow p-4 card">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-gray-500 text-sm">Pending Tasks</p>
+                    <h2 class="text-3xl font-bold">41</h2>
+                    <p class="text-yellow-500 text-sm mt-1">
+                      <i class="fas fa-arrow-down mr-1"></i>
+                      <span>3% decrease</span>
+                    </p>
+                  </div>
+                  <div class="bg-yellow-100 rounded-full h-12 w-12 flex items-center justify-center">
+                    <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                  </div>
+                </div>
+              </div>
+              <!-- Upcoming Meetings Card -->
+              <div class="bg-white rounded-lg shadow p-4 card">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-gray-500 text-sm">Upcoming Meetings</p>
+                    <h2 class="text-3xl font-bold">6</h2>
+                    <p class="text-blue-500 text-sm mt-1">
+                      <i class="fas fa-calendar mr-1"></i>
+                      <span>Today</span>
+                    </p>
+                  </div>
+                  <div class="bg-blue-100 rounded-full h-12 w-12 flex items-center justify-center">
+                    <i class="fas fa-video text-blue-600 text-xl"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <!-- Pending Work Tracker -->
+              <div class="bg-white rounded-lg shadow p-4 card">
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="text-lg font-semibold text-gray-700">Pending Work by Priority</h3>
+                  <div class="text-sm text-gray-500">
+                    <button class="ml-2 text-indigo-600 hover:text-indigo-800">
+                      <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="h-64">
+                  <canvas id="pendingWorkChart"></canvas>
+                </div>
+              </div>
+              <!-- Performance Improvement Analysis -->
+              <div class="bg-white rounded-lg shadow p-4 card">
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="text-lg font-semibold text-gray-700">Performance Improvement Analysis</h3>
+                  <div class="text-sm text-gray-500">
+                    <button class="ml-2 text-indigo-600 hover:text-indigo-800">
+                      <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="h-64">
+                  <canvas id="performanceChart"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <!-- Completed Work Overview -->
+              <div class="bg-white rounded-lg shadow p-4 card">
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="text-lg font-semibold text-gray-700">Completed Work Overview</h3>
+                  <div class="text-sm text-gray-500">
+                    <button class="ml-2 text-indigo-600 hover:text-indigo-800">
+                      <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="h-64">
+                  <canvas id="completedWorkChart"></canvas>
+                </div>
+              </div>
+              <!-- Notifications Dashboard -->
+              <div class="bg-white rounded-lg shadow p-4 card">
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="text-lg font-semibold text-gray-700">Notifications Overview</h3>
+                  <div class="text-sm text-gray-500">
+                    <button class="ml-2 text-indigo-600 hover:text-indigo-800">
+                      <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="h-64">
+                  <canvas id="notificationsChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Chat Section -->
+          <div id="section-chat" class="section">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <!-- Chat Groups -->
+              <div class="bg-white rounded-lg shadow p-4 card">
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="text-lg font-semibold text-gray-700">Chat Groups</h3>
+                  <button class="text-indigo-600 hover:text-indigo-800">
+                    <i class="fas fa-plus"></i> New
+                  </button>
+                </div>
+                <div class="space-y-3 h-96 overflow-y-auto custom-scrollbar">
+                  <!-- Active Chat Group -->
+                  <div class="chat-group active p-3 rounded-lg flex items-center">
+                    <div class="flex-shrink-0 relative">
+                      <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white">DP</div>
+                      <div class="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-white"></div>
+                    </div>
+                    <div class="ml-3 flex-1">
+                      <div class="flex items-center justify-between">
+                        <h4 class="font-medium text-gray-900">Design Project</h4>
+                        <span class="text-xs text-gray-500">2m</span>
+                      </div>
+                      <p class="text-sm text-gray-500 truncate">Sam: I've updated the wireframes...</p>
+                      <small class="text-green-600">Sentiment: Positive</small>
+                    </div>
+                  </div>
+                  <!-- Regular Chat Group -->
+                  <div class="chat-group p-3 rounded-lg flex items-center">
+                    <div class="flex-shrink-0 relative">
+                      <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white">MT</div>
+                    </div>
+                    <div class="ml-3 flex-1">
+                      <div class="flex items-center justify-between">
+                        <h4 class="font-medium text-gray-900">Marketing Team</h4>
+                        <span class="text-xs text-gray-500">1h</span>
+                      </div>
+                      <p class="text-sm text-gray-500 truncate">Emma: Let's discuss the campaign...</p>
+                      <small class="text-yellow-600">Sentiment: Neutral</small>
+                    </div>
+                  </div>
+                  <!-- Notification Chat Group -->
+                  <div class="chat-group p-3 rounded-lg flex items-center">
+                    <div class="flex-shrink-0 relative">
+                      <div class="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center text-white">DT</div>
+                      <div class="absolute bottom-0 right-0 h-3 w-3 bg-red-500 rounded-full border-2 border-white"></div>
+                    </div>
+                    <div class="ml-3 flex-1">
+                      <div class="flex items-center justify-between">
+                        <h4 class="font-medium text-gray-900">Dev Team</h4>
+                        <span class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">3</span>
+                      </div>
+                      <p class="text-sm text-gray-500 truncate">John: @alex can you review PR #342?</p>
+                      <small class="text-red-600">Sentiment: Negative</small>
+                    </div>
+                  </div>
+                  <!-- Another Chat Group -->
+                  <div class="chat-group p-3 rounded-lg flex items-center">
+                    <div class="flex-shrink-0">
+                      <div class="h-10 w-10 rounded-full bg-purple-600 flex items-center justify-center text-white">PM</div>
+                    </div>
+                    <div class="ml-3 flex-1">
+                      <div class="flex items-center justify-between">
+                        <h4 class="font-medium text-gray-900">Project Managers</h4>
+                        <span class="text-xs text-gray-500">2d</span>
+                      </div>
+                      <p class="text-sm text-gray-500 truncate">Lisa: Quarterly review next week...</p>
+                      <small class="text-green-600">Sentiment: Positive</small>
+                    </div>
+                  </div>
+                  <!-- More Chat Groups -->
+                  <div class="chat-group p-3 rounded-lg flex items-center">
+                    <div class="flex-shrink-0">
+                      <img src="/api/placeholder/40/40" alt="User" class="h-10 w-10 rounded-full">
+                    </div>
+                    <div class="ml-3 flex-1">
+                      <div class="flex items-center justify-between">
+                        <h4 class="font-medium text-gray-900">Sarah Miller</h4>
+                        <span class="text-xs text-gray-500">3d</span>
+                      </div>
+                      <p class="text-sm text-gray-500 truncate">Can you check the report I sent?</p>
+                      <small class="text-green-600">Sentiment: Positive</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Chat Window -->
+              <div class="bg-white rounded-lg shadow p-4 card col-span-2 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                  <div class="flex items-center">
+                    <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white">DP</div>
+                    <div class="ml-3">
+                      <h3 class="text-lg font-semibold text-gray-700">Design Project</h3>
+                      <p class="text-xs text-gray-500">5 members • 2 online</p>
+                    </div>
+                  </div>
+                  <div>
+                    <button class="text-gray-500 hover:text-gray-700 mx-1">
+                      <i class="fas fa-phone"></i>
+                    </button>
+                    <button class="text-gray-500 hover:text-gray-700 mx-1">
+                      <i class="fas fa-video"></i>
+                    </button>
+                    <button class="text-gray-500 hover:text-gray-700 mx-1">
+                      <i class="fas fa-info-circle"></i>
+                    </button>
+                  </div>
+                </div>
+                <!-- Chat Messages -->
+                <div id="chatMessages" class="h-80 overflow-y-auto custom-scrollbar mb-4 p-2">
+                  <!-- Date separator -->
+                  <div class="flex justify-center my-4">
+                    <span class="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">Today</span>
+                  </div>
+                  <!-- Preloaded message -->
+                  <div class="flex items-start mb-4">
+                    <img src="/api/placeholder/32/32" alt="User" class="h-8 w-8 rounded-full mr-2">
+                    <div>
+                      <div class="flex items-center">
+                        <span class="font-medium text-sm mr-2">Sam Chen</span>
+                        <span class="text-xs text-gray-500">10:30 AM</span>
+                      </div>
+                      <div class="chat-message message-received p-3 mt-1">
+                        <p>I've updated the wireframes for the dashboard. Can everyone please review and provide feedback by EOD?</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- Message Input -->
+                <div class="flex items-center border-t pt-2">
+                  <input id="chatInput" type="text" placeholder="Type your message..." class="flex-1 border rounded-full px-4 py-2 focus:outline-none" />
+                  <button id="chatSendBtn" class="ml-2 text-indigo-600 hover:text-indigo-800">
+                    <i class="fas fa-paper-plane fa-lg"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Meetings Section -->
+          <div id="section-meetings" class="section">
+            <div class="bg-white rounded-lg shadow p-4 card mb-6">
+              <h3 class="text-lg font-semibold text-gray-700 mb-4">Schedule a Meeting</h3>
+              <form id="meetingForm" class="space-y-4">
+                <div>
+                  <label class="block text-gray-700">Meeting Title</label>
+                  <input type="text" id="meetingTitle" class="border rounded w-full px-3 py-2" placeholder="Enter meeting title" required>
+                </div>
+                <div>
+                  <label class="block text-gray-700">Date & Time</label>
+                  <input type="datetime-local" id="meetingDateTime" class="border rounded w-full px-3 py-2" required>
+                </div>
+                <div>
+                  <label class="block text-gray-700">Room</label>
+                  <input type="text" id="meetingRoom" class="border rounded w-full px-3 py-2" placeholder="Room name or number" required>
+                </div>
+                <button type="submit" class="btn-primary px-4 py-2 rounded">Schedule Meeting</button>
+              </form>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 card">
+              <h3 class="text-lg font-semibold text-gray-700 mb-4">Scheduled Meetings</h3>
+              <ul id="meetingList" class="space-y-3">
+                <!-- Meeting items will be appended here -->
+              </ul>
+            </div>
+          </div>
+          <!-- Reports Section -->
+          <div id="section-reports" class="section">
+            <div class="bg-white rounded-lg shadow p-4 card">
+              <h3 class="text-lg font-semibold text-gray-700 mb-4">Project Reports</h3>
+              <p class="text-gray-600">Here you can view detailed reports of project performance, task completion, and team analytics.</p>
+              <!-- You can extend this section with more interactive charts or data tables -->
+            </div>
+          </div>
+          <!-- Settings Section -->
+          <div id="section-settings" class="section">
+            <div class="bg-white rounded-lg shadow p-4 card">
+              <h3 class="text-lg font-semibold text-gray-700 mb-4">Profile Settings</h3>
+              <form id="settingsForm" class="space-y-4">
+                <div>
+                  <label class="block text-gray-700">Name</label>
+                  <input type="text" id="settingsName" class="border rounded w-full px-3 py-2" value="Alex Johnson">
+                </div>
+                <div>
+                  <label class="block text-gray-700">Designation</label>
+                  <input type="text" id="settingsDesignation" class="border rounded w-full px-3 py-2" value="Project Manager">
+                </div>
+                <button type="submit" class="btn-primary px-4 py-2 rounded">Save Changes</button>
+              </form>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+  
+  <!-- JavaScript Section -->
+  <script>
+    // ------------------------
+    // Login Functionality
+    // ------------------------
+    const loginForm = document.getElementById('loginForm');
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      // Dummy validation: username "admin" and password "admin"
+      if(username === "admin" && password === "admin"){
+        document.getElementById('loginPage').style.display = "none";
+        document.getElementById('mainApp').style.display = "block";
+      } else {
+        alert("Invalid credentials. Try admin/admin");
+      }
+    });
+
+    // ------------------------
+    // Section Navigation Functionality
+    // ------------------------
+    const sidebarLinks = document.querySelectorAll('.sidebar-link');
+    const sections = document.querySelectorAll('.section');
+    const sectionTitle = document.getElementById('sectionTitle');
+    sidebarLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        sidebarLinks.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        const target = link.getAttribute('data-section');
+        sections.forEach(sec => {
+          if(sec.id === `section-${target}`){
+            sec.classList.add('active');
+          } else {
+            sec.classList.remove('active');
+          }
+        });
+        sectionTitle.textContent = link.textContent.trim();
+      });
+    });
+
+    // ------------------------
+    // Search Bar Functionality
+    // ------------------------
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    // Dummy search data
+    const dummyData = [
+      "Dashboard Overview",
+      "Chat Groups",
+      "Meeting Schedule",
+      "Project Reports",
+      "Profile Settings",
+      "Pending Tasks",
+      "Completed Tasks",
+      "Upcoming Meetings"
+    ];
+    searchInput.addEventListener('keyup', (e) => {
+      const query = searchInput.value.trim().toLowerCase();
+      // If Enter is pressed, show results
+      if(e.key === "Enter"){
+        // Filter dummy data
+        const results = dummyData.filter(item => item.toLowerCase().includes(query));
+        if(results.length > 0){
+          searchResults.innerHTML = results.map(item => `<li>${item}</li>`).join("");
+          searchResults.style.display = "block";
+        } else {
+          searchResults.innerHTML = `<li>No results found.</li>`;
+          searchResults.style.display = "block";
+        }
+      }
+      // Hide results if input is cleared
+      if(query === ""){
+        searchResults.style.display = "none";
+      }
+    });
+    // Hide search results on click outside
+    document.addEventListener('click', (e) => {
+      if(!searchInput.contains(e.target)){
+        searchResults.style.display = "none";
+      }
+    });
+    // Optional: Handle click on search result
+    searchResults.addEventListener('click', (e) => {
+      if(e.target.tagName === "LI"){
+        searchInput.value = e.target.textContent;
+        searchResults.style.display = "none";
+      }
+    });
+
+    // ------------------------
+    // Notifications Panel Functionality
+    // ------------------------
+    const notifBtn = document.getElementById('notifBtn');
+    const notificationsPanel = document.getElementById('notificationsPanel');
+    notifBtn.addEventListener('click', () => {
+      notificationsPanel.style.display = notificationsPanel.style.display === "block" ? "none" : "block";
+    });
+    // Hide notifications panel if clicked outside
+    document.addEventListener('click', (e) => {
+      if(!notifBtn.contains(e.target) && !notificationsPanel.contains(e.target)){
+        notificationsPanel.style.display = "none";
+      }
+    });
+
+    // ------------------------
+    // Settings Dropdown and Logout Functionality
+    // ------------------------
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsDropdown = document.getElementById('settingsDropdown');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    settingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      settingsDropdown.style.display = settingsDropdown.style.display === "block" ? "none" : "block";
+    });
+    // Hide dropdown if clicked outside
+    document.addEventListener('click', () => {
+      settingsDropdown.style.display = "none";
+    });
+    logoutBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Simple logout: hide main app and show login page
+      document.getElementById('mainApp').style.display = "none";
+      document.getElementById('loginPage').style.display = "flex";
+    });
+
+    // ------------------------
+    // Chart Initializations with Dummy Data
+    // ------------------------
+    const pendingCtx = document.getElementById('pendingWorkChart').getContext('2d');
+    new Chart(pendingCtx, {
+      type: 'pie',
+      data: {
+        labels: ['High', 'Medium', 'Low'],
+        datasets: [{
+          data: [10, 20, 11],
+          backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6']
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+    const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+    new Chart(performanceCtx, {
+      type: 'line',
+      data: {
+        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+        datasets: [{
+          label: 'Task Completion Rate',
+          data: [65, 59, 80, 81],
+          borderColor: '#4f46e5',
+          fill: false
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+    const completedCtx = document.getElementById('completedWorkChart').getContext('2d');
+    new Chart(completedCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Bugs Fixed', 'Features Developed', 'Docs Completed'],
+        datasets: [{
+          label: 'Completed Tasks',
+          data: [30, 50, 7],
+          backgroundColor: ['#10b981', '#4f46e5', '#f59e0b']
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+    const notificationsCtx = document.getElementById('notificationsChart').getContext('2d');
+    new Chart(notificationsCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Mentions', 'Reminders', 'Deadlines', 'Updates'],
+        datasets: [{
+          data: [5, 3, 2, 6],
+          backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f59e0b']
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // ------------------------
+    // Bonus: Eye Gaze Tracking with WebGazer
+    // ------------------------
+    window.onload = function() {
+      webgazer.setRegression('ridge')
+              .setGazeListener(function(data, elapsedTime) {
+                if (!data) return;
+              }).begin();
+      webgazer.showVideo(false);
+      webgazer.showFaceOverlay(false);
+      webgazer.showFaceFeedbackBox(false);
+      // Update the sidebar eye tracker status
+      document.getElementById('eyeTrackerStatusSidebar').innerText = 'Eye Tracker: Active';
+    };
+
+    // ------------------------
+    // Bonus: Voice Command Integration using Web Speech API
+    // ------------------------
+    const voiceIndicator = document.getElementById('voiceIndicator');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      recognition.onstart = () => { voiceIndicator.style.display = 'block'; };
+      recognition.onresult = (event) => { console.log('Voice Command:', event.results[0][0].transcript); };
+      recognition.onend = () => { voiceIndicator.style.display = 'none'; };
+      document.getElementById('accessibilityBtn').addEventListener('click', () => { recognition.start(); });
+    }
+
+    // ------------------------
+    // Enhanced AI Assistant Functionality
+    // ------------------------
+    const aiResponsesPool = [
+      "I'm working on that right now.",
+      "Could you please provide more details?",
+      "Based on our previous data, it seems like a good idea.",
+      "I'll forward your request to the relevant team.",
+      "Let me check and get back to you shortly.",
+      "That sounds interesting, let's explore further options."
+    ];
+    const aiAssistantBtn = document.getElementById('aiAssistantBtn');
+    const aiModal = document.getElementById('aiModal');
+    const closeAiModal = document.getElementById('closeAiModal');
+    const aiSendBtn = document.getElementById('aiSendBtn');
+    const aiInput = document.getElementById('aiInput');
+    const aiResponseArea = document.getElementById('aiResponseArea');
+    aiAssistantBtn.addEventListener('click', () => { aiModal.style.display = aiModal.style.display === 'block' ? 'none' : 'block'; });
+    closeAiModal.addEventListener('click', () => { aiModal.style.display = 'none'; });
+    aiSendBtn.addEventListener('click', () => {
+      const query = aiInput.value.trim();
+      if (query !== "") {
+        const userQuery = document.createElement('p');
+        userQuery.innerHTML = `<strong>You:</strong> ${query}`;
+        aiResponseArea.appendChild(userQuery);
+        aiResponsesPool.forEach((response, index) => {
+          setTimeout(() => {
+            const aiResponse = document.createElement('p');
+            aiResponse.innerHTML = `<strong>AI:</strong> ${response} (in response to "${query}")`;
+            aiResponseArea.appendChild(aiResponse);
+            aiResponseArea.scrollTop = aiResponseArea.scrollHeight;
+          }, 1000 * (index + 1));
+        });
+        aiInput.value = "";
+      }
+    });
+
+    // ------------------------
+    // Interactive Chat Functionality
+    // ------------------------
+    const chatInput = document.getElementById('chatInput');
+    const chatSendBtn = document.getElementById('chatSendBtn');
+    const chatMessages = document.getElementById('chatMessages');
+    function appendChatMessage(message, type = 'sent') {
+      const messageWrapper = document.createElement('div');
+      messageWrapper.classList.add('flex', 'items-start', 'mb-4', type === 'sent' ? 'justify-end' : '');
+      const userImg = document.createElement('img');
+      userImg.src = "/api/placeholder/32/32";
+      userImg.alt = "User";
+      userImg.classList.add('h-8', 'w-8', 'rounded-full');
+      if (type === 'received') userImg.classList.add('mr-2');
+      const messageContent = document.createElement('div');
+      if (type === 'sent') {
+        messageContent.classList.add('text-right');
+        messageContent.innerHTML = `<div class="chat-message message-sent p-3 mt-1"><p>${message}</p></div>`;
+      } else {
+        messageContent.innerHTML = `<div class="chat-message message-received p-3 mt-1"><p>${message}</p></div>`;
+      }
+      if (type === 'sent') {
+        messageWrapper.appendChild(messageContent);
+        messageWrapper.appendChild(userImg);
+      } else {
+        messageWrapper.appendChild(userImg);
+        messageWrapper.appendChild(messageContent);
+      }
+      chatMessages.appendChild(messageWrapper);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    chatSendBtn.addEventListener('click', () => {
+      const message = chatInput.value.trim();
+      if (message !== "") {
+        appendChatMessage(message, 'sent');
+        chatInput.value = "";
+        setTimeout(() => { appendChatMessage("This is a simulated auto-reply.", 'received'); }, 1500);
+      }
+    });
+    chatInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') chatSendBtn.click(); });
+
+    // ------------------------
+    // Meetings: Schedule and List Meetings
+    // ------------------------
+    const meetingForm = document.getElementById('meetingForm');
+    const meetingList = document.getElementById('meetingList');
+    meetingForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = document.getElementById('meetingTitle').value.trim();
+      const dateTime = document.getElementById('meetingDateTime').value;
+      const room = document.getElementById('meetingRoom').value.trim();
+      if (title && dateTime && room) {
+        const li = document.createElement('li');
+        li.classList.add('p-3', 'bg-gray-50', 'rounded', 'shadow-sm');
+        li.innerHTML = `<strong>${title}</strong><br>
+                        <small>${new Date(dateTime).toLocaleString()}</small><br>
+                        <em>Room:</em> ${room}`;
+        meetingList.appendChild(li);
+        meetingForm.reset();
+      }
+    });
+
+    // ------------------------
+    // Settings: Update Profile
+    // ------------------------
+    const settingsForm = document.getElementById('settingsForm');
+    settingsForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const newName = document.getElementById('settingsName').value.trim();
+      const newDesignation = document.getElementById('settingsDesignation').value.trim();
+      if (newName && newDesignation) {
+        document.getElementById('profileName').textContent = newName;
+        document.getElementById('profileRole').textContent = newDesignation;
+        alert('Profile updated successfully!');
+      }
+    });
+  </script>
+</body>
+</html>
